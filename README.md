@@ -30,10 +30,13 @@ Params:
     	path to users data (default "users.json")
 ```
 
+_If no hosts are specified, or `localhost` is used, it will only serve on http, with not auto TLS redirection._  
+_If no login template is specified, a default one is used._
+
 #### Users
 
 For authenticaion, you'll need a `users.json` file.  
-It should structed like:
+It should be structed like:
 
 ```json
 {
