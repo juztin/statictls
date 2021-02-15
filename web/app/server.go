@@ -45,7 +45,7 @@ func redirectInsecure(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, target, http.StatusPermanentRedirect)
 }
 
-func (s *Server) Serve() error {
+func (s *Server) Serve(httpAddr, tlsAddr string) error {
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir(s.contentPath))
 	mux.Handle("/user", http.HandlerFunc(authHandler(s.auth, s.session, s.authTemplatePath)))
@@ -59,30 +59,31 @@ func (s *Server) Serve() error {
 	}()
 
 	if len(s.hosts) == 1 && s.hosts[0] == "localhost" {
-		log.Println("Listening on :3000...")
-		return http.ListenAndServe(":3000", mux)
+		log.Printf("Listening on %s...\n", httpAddr)
+		return http.ListenAndServe(httpAddr, mux)
 	} else {
-		go func() {
-			log.Println("Listening on :80")
-			log.Fatal(http.ListenAndServe(":80", http.HandlerFunc(redirectInsecure)))
-		}()
-		log.Println("Listening on :443")
+		log.Printf("acme hosts: %s\n", s.hosts)
 		m := &autocert.Manager{
 			Cache:      autocert.DirCache(s.cachePath),
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist(s.hosts...),
 		}
+		go func() {
+			log.Printf("Listening on %s\n", httpAddr)
+			log.Fatal(http.ListenAndServe(httpAddr, m.HTTPHandler(http.HandlerFunc(redirectInsecure))))
+		}()
 		s := &http.Server{
-			Addr:      ":https",
+			Addr:      tlsAddr,
 			TLSConfig: m.TLSConfig(),
 		}
 		s.Handler = mux
+		log.Printf("Listening on %s\n", tlsAddr)
 		return (s.ListenAndServeTLS("", ""))
 	}
 	return nil
 }
 
-func New(s session.Manager, a auth.Authenticator, contentPath, cachePath, authTemplatePath string, hosts []string) *Server {
+func New(s session.Manager, a auth.Authenticator, contentPath, cachePath, authTemplatePath string, hosts ...string) *Server {
 	return &Server{
 		session:          s,
 		auth:             a,
