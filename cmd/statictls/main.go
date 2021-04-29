@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/juztin/statictls/internal/auth"
-	"github.com/juztin/statictls/internal/session"
+	"github.com/juztin/statictls/pkg/auth"
+	"github.com/juztin/statictls/pkg/session"
 	"github.com/juztin/statictls/web/app"
 )
 

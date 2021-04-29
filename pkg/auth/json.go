@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
-
-	a "github.com/juztin/statictls/pkg/auth"
 )
 
 type JsonAuthenticator struct {
@@ -43,7 +41,7 @@ func (j *JsonAuthenticator) Authenticate(username, password string) error {
 	}
 	hashed, ok := j.users[username]
 	if !ok {
-		return a.ErrInvalidCredentials
+		return ErrInvalidCredentials
 	}
 	return bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
 }

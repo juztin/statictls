@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/juztin/statictls/internal/middleware"
 	"github.com/juztin/statictls/pkg/auth"
 	"github.com/juztin/statictls/pkg/session"
+	"github.com/juztin/statictls/web/middleware"
 	"golang.org/x/crypto/acme/autocert"
 )
 
