@@ -49,5 +49,12 @@ func (m *Memory) Remove(expireAfter time.Duration) ([]string, error) {
 }
 
 func NewMemory() *Memory {
-	return &Memory{make(map[string]time.Time)}
+	m := &Memory{make(map[string]time.Time)}
+	go func() {
+		for {
+			<-time.After(5 * time.Minute)
+			m.Remove(15 * time.Minute)
+		}
+	}()
+	return m
 }

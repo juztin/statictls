@@ -3,7 +3,6 @@ package app
 import (
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/juztin/statictls/pkg/auth"
 	"github.com/juztin/statictls/pkg/session"
@@ -12,6 +11,7 @@ import (
 )
 
 type Server struct {
+	*http.ServeMux
 	session          session.Manager
 	auth             auth.Authenticator
 	authTemplatePath string
@@ -46,21 +46,12 @@ func redirectInsecure(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) Serve(httpAddr, tlsAddr string) error {
-	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir(s.contentPath))
-	mux.Handle("/user", http.HandlerFunc(authHandler(s.auth, s.session, s.authTemplatePath)))
-	mux.Handle("/", middleware.Auth(s.session, middleware.NoCache(fs)))
-
-	go func() {
-		for {
-			<-time.After(5 * time.Minute)
-			s.session.Remove(15 * time.Minute)
-		}
-	}()
-
+	s.Handle("/user", http.HandlerFunc(authHandler(s.auth, s.session, s.authTemplatePath)))
+	s.Handle("/", middleware.Auth(s.session, middleware.NoCache(fs)))
 	if len(s.hosts) == 1 && s.hosts[0] == "localhost" {
 		log.Printf("Listening on %s...\n", httpAddr)
-		return http.ListenAndServe(httpAddr, mux)
+		return http.ListenAndServe(httpAddr, s)
 	} else {
 		log.Printf("acme hosts: %s\n", s.hosts)
 		m := &autocert.Manager{
@@ -72,19 +63,20 @@ func (s *Server) Serve(httpAddr, tlsAddr string) error {
 			log.Printf("Listening on %s\n", httpAddr)
 			log.Fatal(http.ListenAndServe(httpAddr, m.HTTPHandler(http.HandlerFunc(redirectInsecure))))
 		}()
-		s := &http.Server{
+		svr := &http.Server{
 			Addr:      tlsAddr,
 			TLSConfig: m.TLSConfig(),
 		}
-		s.Handler = mux
+		svr.Handler = s
 		log.Printf("Listening on %s\n", tlsAddr)
-		return (s.ListenAndServeTLS("", ""))
+		return (svr.ListenAndServeTLS("", ""))
 	}
 	return nil
 }
 
 func New(s session.Manager, a auth.Authenticator, contentPath, cachePath, authTemplatePath string, hosts ...string) *Server {
 	return &Server{
+		ServeMux:         http.NewServeMux(),
 		session:          s,
 		auth:             a,
 		authTemplatePath: authTemplatePath,
