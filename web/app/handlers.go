@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/juztin/statictls/pkg/auth"
@@ -125,7 +126,11 @@ func authHandler(a auth.Authenticator, s session.Manager, authTemplatePath strin
 			err := a.Authenticate(r.FormValue("username"), r.FormValue("password"))
 			if err == nil {
 				log.Printf("authHandler: authenticated user %q\n", r.FormValue("username"))
-				newURL := r.URL.Query().Get("redirect")
+				var newURL string
+				referer, err := url.Parse(r.Referer())
+				if err == nil {
+					newURL = referer.Query().Get("redirect")
+				}
 				if newURL == "" {
 					newURL = "/"
 				}

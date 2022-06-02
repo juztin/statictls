@@ -16,7 +16,7 @@ func Auth(s session.Manager, next http.Handler) http.Handler {
 			log.Printf("middleware: failed session check: %q\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 		} else if isValid == false {
-			newURL := fmt.Sprintf("/user?request=%s", url.QueryEscape(r.URL.Path))
+			newURL := fmt.Sprintf("/user?redirect=%s", url.QueryEscape(r.URL.Path))
 			http.Redirect(w, r, newURL, http.StatusSeeOther)
 		} else {
 			next.ServeHTTP(w, r)
