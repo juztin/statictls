@@ -4,11 +4,13 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 )
 
 type Memory struct {
 	sessions map[string]time.Time
+	mutex    sync.RWMutex
 }
 
 func (m *Memory) New() (string, error) {
@@ -18,7 +20,9 @@ func (m *Memory) New() (string, error) {
 		return "", err
 	}
 	session := fmt.Sprintf("%x", b)
+	m.mutex.RLock()
 	m.sessions[session] = time.Now()
+	m.mutex.RUnlock()
 	return session, nil
 }
 
@@ -30,26 +34,32 @@ func (m *Memory) Check(r *http.Request) (bool, error) {
 		}
 		return false, err
 	}
+	m.mutex.Lock()
 	_, ok := m.sessions[c.Value]
 	if ok {
 		m.sessions[c.Value] = time.Now()
 	}
+	m.mutex.Unlock()
 	return ok, nil
 }
 
 func (m *Memory) Remove(expireAfter time.Duration) ([]string, error) {
 	var cleaned []string
+	m.mutex.Lock()
 	for k, v := range m.sessions {
 		if time.Now().Sub(v) > expireAfter {
 			cleaned = append(cleaned, k)
 			delete(m.sessions, k)
 		}
 	}
+	m.mutex.Unlock()
 	return cleaned, nil
 }
 
 func NewMemory() *Memory {
-	m := &Memory{make(map[string]time.Time)}
+	m := &Memory{
+		sessions: make(map[string]time.Time),
+	}
 	go func() {
 		for {
 			<-time.After(5 * time.Minute)
