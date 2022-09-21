@@ -4,10 +4,11 @@ import (
 	"log"
 	"net/http"
 
+	"golang.org/x/crypto/acme/autocert"
+
 	"github.com/juztin/statictls/pkg/auth"
 	"github.com/juztin/statictls/pkg/session"
 	"github.com/juztin/statictls/web/middleware"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 type Server struct {
