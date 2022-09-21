@@ -37,7 +37,10 @@ func (j *JsonAuthenticator) Authenticate(username, password string) error {
 		return err
 	}
 	if stats.ModTime().Sub(j.lastModified) > 0 {
-		j.loadUsers()
+		err := j.loadUsers()
+		if err != nil {
+			return err
+		}
 	}
 	hashed, ok := j.users[username]
 	if !ok {
@@ -46,6 +49,7 @@ func (j *JsonAuthenticator) Authenticate(username, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashed), []byte(password))
 }
 
-func NewJson(usersPath string) *JsonAuthenticator {
-	return &JsonAuthenticator{usersPath: usersPath}
+func NewJson(usersPath string) (*JsonAuthenticator, error) {
+	j := &JsonAuthenticator{usersPath: usersPath}
+	return j, j.loadUsers()
 }
